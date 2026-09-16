@@ -1,0 +1,27 @@
+/*
+ * El tema es claro y fijo (no sigue prefers-color-scheme): MUI ThemeProvider
+ * + CssBaseline (ver src/theme.ts, src/app-providers.tsx) controlan colores
+ * y tipografía para toda la app. Este archivo solo cubre reset base.
+ */
+html {
+  height: 100%;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
