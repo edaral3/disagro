@@ -72,7 +72,10 @@ Ver `.claude/skills/disagro-rules/SKILL.md` para detalles completos.
 ## API Endpoints (Backend)
 
 **Items (búsqueda)**
-- `GET /api/items?type=SERVICE|PRODUCT&search=texto` → lista filtrada
+- `GET /api/items?search=texto&type=SERVICE|PRODUCT&minPrice=&maxPrice=&sortBy=price_asc|price_desc`
+  → lista filtrada. Todos los parámetros son opcionales y combinables; `type` ausente = ambos
+  tipos, `sortBy` ausente = orden por nombre ascendente. UI: botón de filtros junto al buscador
+  (`frontend/src/components/ItemsFilterMenu.tsx`).
 
 **Session**
 - `POST /api/session/start` → `{ token, expiresIn }` (anónimo, sin auth)
@@ -111,7 +114,7 @@ Requiere PostgreSQL local corriendo en `localhost:5432`. El frontend lee
 cd backend
 npm run test                # Unit tests (DiscountCalculatorService) — 20 tests
 npm run test:cov            # Coverage report
-npm run test:e2e            # E2E flujo completo (SQLite en memoria) — 15 tests
+npm run test:e2e            # E2E flujo completo (SQLite en memoria) — 19 tests
 npm run test:debug          # Debug con node --inspect-brk
 ```
 

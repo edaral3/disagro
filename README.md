@@ -50,9 +50,10 @@ disagro/
 - `ValidationPipe` global: whitelist, forbid unknown fields, auto-transform DTO
 
 **Paso 7 (✅ COMPLETADO): Tests e2e del flujo completo**
-- 15 tests e2e (SQLite en memoria, sin depender de Docker): sesión → items → registro → consulta
+- 19 tests e2e (SQLite en memoria, sin depender de Docker): sesión → items → registro → consulta
 - Cubre ambos escenarios de descuento, duplicados de email (incl. case-insensitive), fecha pasada,
-  ítem inactivo, ítem inexistente, ítems duplicados en la misma request, UUIDs inválidos
+  ítem inactivo, ítem inexistente, ítems duplicados en la misma request, UUIDs inválidos, rango de
+  precio y orden por precio en `GET /items`
 
 **Paso 8 (✅ COMPLETADO): Dockerización**
 - `Dockerfile` multi-stage: build + runtime optimizado
@@ -98,7 +99,7 @@ varios problemas reales que ya están corregidos:
   (`simple-enum`, tipo inferido) para no acoplar el esquema a un solo motor de base de datos.
 
 Todo lo anterior está verificado empíricamente: `npm install`, `npx tsc --noEmit`, `npm run build`,
-`npm test` (20/20) y `npm run test:e2e` (15/15) pasan limpio.
+`npm test` (20/20) y `npm run test:e2e` (19/19) pasan limpio.
 
 ## Frontend — Estado actual
 
@@ -109,6 +110,10 @@ Todo lo anterior está verificado empíricamente: `npm install`, `npx tsc --noEm
 - Sesión anónima (`useSession`): pide un JWT al backend y lo persiste en `sessionStorage`;
   reintenta automáticamente si expira en medio del llenado (401 → nueva sesión → reintento).
 - Búsqueda de ítems con debounce (300ms) vía React Query.
+- **Filtros avanzados** (`ItemsFilterMenu.tsx`, botón junto al buscador): tipo (todos/servicios/
+  productos), rango de precio mínimo/máximo, y orden por precio (menor→mayor / mayor→menor).
+  Se aplican en vivo, igual que la búsqueda de texto. Backend: `GET /items` acepta `minPrice`,
+  `maxPrice` y `sortBy` además de `search`/`type` (retrocompatible, todos opcionales).
 - **Descuento en vivo**: `src/lib/discount.ts` es un espejo puro de
   `DiscountCalculatorService` del backend (mismos tests de paridad), usado solo para
   previsualización mientras el cliente selecciona ítems — el descuento que se persiste
@@ -156,7 +161,7 @@ Swagger disponible en: `http://localhost:3000/api/docs`
 # Backend
 cd backend
 npm test          # unitarios (DiscountCalculatorService) — 20 tests
-npm run test:e2e  # flujo completo vía SQLite en memoria — 15 tests
+npm run test:e2e  # flujo completo vía SQLite en memoria — 19 tests
 
 # Frontend
 cd frontend
