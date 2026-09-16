@@ -91,6 +91,10 @@ Reglas:
 - **Stack frontend**: Next.js (App Router) + Material-UI + React Query + React Hook Form + Zod.
   Completo y verificado end-to-end (dev y dockerizado) — ver README.md sección "Frontend".
 - **Orden de trabajo**: backend primero, completo y validado, antes de tocar frontend (cumplido).
+- **Despliegue**: Railway (proyecto `disagro`, workspace `edaral3`), 3 servicios (Postgres, api,
+  frontend) cada uno desde su Dockerfile. URLs y comando de reproducción en README.md sección
+  "Despliegue en Railway". `DB_SYNCHRONIZE=true` en producción (no hay migraciones todavía —
+  ver `backend/src/app.module.ts`, flag independiente de `NODE_ENV`).
 - **`selectedItemIds`**: array plano de UUID strings (`string[]`), no objetos `{id}` — el nombre
   del campo debe coincidir con su forma real.
 - **Descuento en vivo del frontend**: `frontend/src/lib/discount.ts` es un espejo puro de

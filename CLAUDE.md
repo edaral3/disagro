@@ -166,15 +166,17 @@ Migraciones: `src/database/migrations/` (aún no hay ninguna; se usa `synchroniz
 - **devops-engineer**: Para Docker, CI/CD
 - **code-documenter**: Para Swagger, JSDoc
 
-## Pasos pendientes
+## Despliegue — Railway (✅ completo)
 
-1. **Despliegue a la nube** (único pendiente real)
-   - Elegir proveedor: AWS/GCP/Railway/Render/Fly.io, etc.
-   - Variables de entorno en producción: `JWT_SECRET` (cambiar el default),
-     credenciales de DB, `FRONTEND_URL` (backend) y `NEXT_PUBLIC_API_URL` (frontend,
-     **build-time**, no runtime — ver Gotchas)
-   - Backups automáticos de Postgres
-   - CI/CD (GitHub Actions o similar) — no existe todavía
+3 servicios en un proyecto Railway (`disagro`, workspace `edaral3`): `Postgres`, `api`, `frontend`,
+cada app service construido desde su Dockerfile existente (`build.builder DOCKERFILE`), sin
+cambios de código para el build. URLs y comando de reproducción completos en `README.md` sección
+"Despliegue en Railway" — no los dupliques aquí, mantenlos en un solo lugar.
+
+**Pendiente real que queda** (no bloqueante para la demo):
+- Migraciones de TypeORM reales (hoy usa `DB_SYNCHRONIZE=true` en producción a falta de ellas)
+- CI/CD (GitHub Actions o similar) para redeploys automáticos — hoy es manual vía `railway up`
+- Backups automáticos de Postgres (Railway los ofrece como upgrade, no configurado)
 
 ## Gotchas de Docker (ya resueltos, no repetir el diagnóstico)
 
@@ -235,7 +237,8 @@ Prueba técnica de Disagro — Arnold Developer (arnolso201@gmail.com)
 
 **Último update**: 2026-09-16
 **Backend Status**: ✅ Completo y verificado (Pasos 1-8, auditado y corregido)
-**Frontend Status**: ✅ Completo y verificado end-to-end (dev y dockerizado, navegador real)
-**Pendiente**: despliegue a la nube (ver "Pasos pendientes")
+**Frontend Status**: ✅ Completo y verificado end-to-end (dev, dockerizado y en producción)
+**Deploy Status**: ✅ Live en Railway — ver README.md sección "Demo en vivo" para las URLs
+**Pendiente**: migraciones reales, CI/CD, backups automáticos (no bloqueantes)
 
 Para más detalles de reglas, ver `.claude/skills/disagro-rules/SKILL.md`.
