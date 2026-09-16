@@ -147,7 +147,7 @@ que renderiza `<div>`, anidado dentro del `<p>` por defecto de `ListItemText`'s 
 # Desde la raíz del proyecto
 docker compose up --build
 # PostgreSQL: localhost:5432 · API: http://localhost:3000/api · Frontend: http://localhost:3001
-cd backend && npm run db:seed   # una vez, para cargar los 11 ítems de ejemplo
+cd backend && npm run db:seed   # una vez, para cargar los ítems de ejemplo
 ```
 
 **Sin Docker** (requiere PostgreSQL local en `localhost:5432`):
@@ -156,7 +156,7 @@ cd backend && npm run db:seed   # una vez, para cargar los 11 ítems de ejemplo
 cd backend
 npm install
 npm run start:dev
-npm run db:seed   # opcional: carga 11 ítems de ejemplo (idempotente)
+npm run db:seed   # opcional: carga los ítems de ejemplo (idempotente por ítem)
 
 # Frontend (en otra terminal)
 cd frontend

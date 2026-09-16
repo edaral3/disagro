@@ -37,6 +37,20 @@ export const itemsSeed = [
     type: ItemType.SERVICE,
     category: 'Capacitación',
   },
+  {
+    name: 'Auditoría Financiera',
+    description: 'Revisión integral de procesos y estados financieros',
+    price: 900.00,
+    type: ItemType.SERVICE,
+    category: 'Finanzas',
+  },
+  {
+    name: 'Migración a la Nube',
+    description: 'Migración de infraestructura on-premise a la nube',
+    price: 750.00,
+    type: ItemType.SERVICE,
+    category: 'Infraestructura',
+  },
 
   // Productos
   {
@@ -78,6 +92,20 @@ export const itemsSeed = [
     name: 'Monitor 27"',
     description: 'Monitor LED 27 pulgadas, resolución 2K',
     price: 200.00,
+    type: ItemType.PRODUCT,
+    category: 'Hardware',
+  },
+  {
+    name: 'Teclado Mecánico',
+    description: 'Teclado mecánico retroiluminado para oficina o gaming',
+    price: 180.00,
+    type: ItemType.PRODUCT,
+    category: 'Hardware',
+  },
+  {
+    name: 'Disco SSD 1TB',
+    description: 'Unidad de estado sólido de 1TB, alta velocidad de lectura/escritura',
+    price: 250.00,
     type: ItemType.PRODUCT,
     category: 'Hardware',
   },

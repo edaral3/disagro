@@ -9,7 +9,11 @@ import { RegistrationItem } from '../../registrations/entities/registration-item
 import { itemsSeed } from './items.seed';
 
 /**
- * Script de seed idempotente: solo inserta datos si la tabla `items` está vacía.
+ * Script de seed idempotente por ítem: inserta solo los ítems de
+ * `itemsSeed` que no existan ya (comparando por `name`), sin duplicar ni
+ * tocar los que ya están. Esto permite agregar ítems nuevos a
+ * `items.seed.ts` y volver a correr `npm run db:seed` en una base ya
+ * sembrada sin necesidad de vaciarla primero.
  * Uso: npm run db:seed (ver package.json)
  */
 async function runSeed() {
@@ -28,17 +32,25 @@ async function runSeed() {
   console.log('✓ Conectado a la base de datos');
 
   const itemRepository = dataSource.getRepository(Item);
-  const existingCount = await itemRepository.count();
+  const existingNames = new Set(
+    (await itemRepository.find({ select: ['name'] })).map((i) => i.name),
+  );
 
-  if (existingCount > 0) {
+  const missingItems = itemsSeed.filter((seed) => !existingNames.has(seed.name));
+
+  if (missingItems.length === 0) {
     console.log(
-      `⚠ La tabla 'items' ya tiene ${existingCount} registros. Seed omitido (idempotente).`,
+      `⚠ Los ${itemsSeed.length} ítems de items.seed.ts ya existen en la base. Nada que insertar.`,
     );
-    console.log('  Para forzar el reseed, vacía la tabla items primero.');
   } else {
-    const items = itemRepository.create(itemsSeed);
+    const items = itemRepository.create(missingItems);
     await itemRepository.save(items);
-    console.log(`✓ ${items.length} ítems insertados (servicios y productos)`);
+    console.log(
+      `✓ ${items.length} ítem(s) nuevo(s) insertado(s): ${missingItems.map((i) => i.name).join(', ')}`,
+    );
+    if (existingNames.size > 0) {
+      console.log(`  (${existingNames.size} ítem(s) ya existentes se dejaron sin tocar)`);
+    }
   }
 
   await dataSource.destroy();

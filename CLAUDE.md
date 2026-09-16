@@ -153,7 +153,9 @@ Tablas:
 - `registrations`: confirmaciones de asistencia (`email` con constraint único)
 - `registration_items`: ítems seleccionados + precio snapshot
 
-Seed: `npm run db:seed` inserta 11 ítems de ejemplo (idempotente, solo si la tabla está vacía).
+Seed: `npm run db:seed` inserta los ítems de ejemplo de `items.seed.ts` (15 actualmente: 7
+servicios, 8 productos) que aún no existan en la tabla, comparando por `name` — idempotente por
+ítem, así que agregar nuevos ítems al seed y volver a correrlo en una base ya sembrada es seguro.
 Migraciones: `src/database/migrations/` (aún no hay ninguna; se usa `synchronize` en dev).
 
 ## Skills de Claude Code
