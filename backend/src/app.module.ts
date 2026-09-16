@@ -44,7 +44,13 @@ import { SessionModule } from './session/session.module';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get('JWT_EXPIRATION', 1800),
+          // ConfigService.get() siempre devuelve string (viene de env vars).
+          // jsonwebtoken interpreta expiresIn como NÚMERO=segundos, pero
+          // como STRING lo parsea con la librería `ms`, que trata un
+          // numeral sin unidad (ej. "180") como MILISEGUNDOS (0.18s,
+          // redondeado a 0) — el token nunca expiraba de verdad. Number()
+          // fuerza la interpretación correcta (segundos).
+          expiresIn: Number(configService.get('JWT_EXPIRATION', 1800)),
         },
       }),
       global: true,

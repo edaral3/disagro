@@ -49,7 +49,7 @@ disagro/
 - DTOs con validación (class-validator)
 
 **Paso 5 (✅ COMPLETADO): Módulo `session` con JWT anónimo**
-- Controller: `POST /session/start` → emite JWT de 30 min sin login
+- Controller: `POST /session/start` → emite JWT de corta duración (configurable vía JWT_EXPIRATION; actualmente 3 min) sin login
 - Guard: `SessionGuard` valida token en Authorization header
 - Protege `POST /registrations` contra spam/CSRF
 - Payload anónimo: solo `sub: 'anonymous-form'`
@@ -206,7 +206,7 @@ railway environment edit --service-config frontend build.builder DOCKERFILE
 railway variable set \
   DB_HOST='${{Postgres.PGHOST}}' DB_PORT='${{Postgres.PGPORT}}' \
   DB_USERNAME='${{Postgres.PGUSER}}' DB_PASSWORD='${{Postgres.PGPASSWORD}}' \
-  DB_NAME='${{Postgres.PGDATABASE}}' JWT_EXPIRATION=1800 NODE_ENV=production \
+  DB_NAME='${{Postgres.PGDATABASE}}' JWT_EXPIRATION=180 NODE_ENV=production \
   DB_SYNCHRONIZE=true PORT=3000 --service api
 
 railway variable set JWT_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" --service api

@@ -31,7 +31,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-disagro_pass}
       DB_NAME: ${DB_NAME:-disagro_db}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-1800}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-180}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
     ports:
       - "3000:3000"

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import * as request from 'supertest';
 
@@ -26,9 +27,16 @@ describe('Registration flow (e2e)', () => {
   let app: INestApplication;
   let itemIds: Record<string, string>;
 
+  // String a propósito (así llega process.env.JWT_EXPIRATION en la app real) —
+  // ver la nota en app.module.ts: un numeral sin unidad pasado como STRING a
+  // jsonwebtoken se interpreta como milisegundos vía la librería `ms`, no
+  // segundos, colapsando a una duración ~0 si no se envuelve en Number().
+  process.env.JWT_EXPIRATION = '2';
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
         TypeOrmModule.forRoot({
           type: 'better-sqlite3',
           database: ':memory:',
@@ -39,9 +47,16 @@ describe('Registration flow (e2e)', () => {
         }),
         JwtModule.registerAsync({
           global: true,
-          useFactory: () => ({
+          imports: [ConfigModule],
+          inject: [ConfigService],
+          // Mismo patrón que AppModule (incl. el Number() que corrige el bug
+          // de arriba) para que este test ejercite la ruta real, no una
+          // versión simplificada que nunca hubiera detectado la regresión.
+          useFactory: (configService: ConfigService) => ({
             secret: 'test-secret',
-            signOptions: { expiresIn: 1800 },
+            signOptions: {
+              expiresIn: Number(configService.get('JWT_EXPIRATION', 1800)),
+            },
           }),
         }),
         ItemsModule,
@@ -101,6 +116,48 @@ describe('Registration flow (e2e)', () => {
     expect(res.body.token).toBeDefined();
     return res.body.token;
   }
+
+  function decodeJwtPayload(token: string): { iat: number; exp: number } {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, 'base64').toString());
+  }
+
+  describe('Sesión: expiración real del JWT (regresión)', () => {
+    it('POST /api/session/start emite un token cuyo exp está exactamente JWT_EXPIRATION segundos después de iat', async () => {
+      const token = await getSessionToken();
+      const { iat, exp } = decodeJwtPayload(token);
+      // JWT_EXPIRATION='2' (string, como llega de una env var real).
+      expect(exp - iat).toBe(2);
+    });
+
+    it('expiresIn en la respuesta coincide con la duración real del token', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/session/start')
+        .expect(200);
+      const { iat, exp } = decodeJwtPayload(res.body.token);
+      expect(res.body.expiresIn).toBe(2);
+      expect(exp - iat).toBe(res.body.expiresIn);
+    });
+
+    it('un token ya expirado es rechazado por SessionGuard (401)', async () => {
+      const token = await getSessionToken();
+      // Esperar más que JWT_EXPIRATION (2s) para que el token expire de verdad.
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+
+      await request(app.getHttpServer())
+        .post('/api/registrations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          firstName: 'Expirado',
+          lastName: 'Test',
+          email: 'expirado@example.com',
+          eventDateTime: '2099-01-01T10:00:00Z',
+          selectedItemIds: [itemIds.productA],
+        })
+        .expect(401);
+    }, 10000);
+  });
 
   it('GET /api/items lists only active items', async () => {
     const res = await request(app.getHttpServer())

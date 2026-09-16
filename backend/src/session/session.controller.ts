@@ -1,5 +1,6 @@
 import { Controller, Post, HttpCode } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StartSessionResponseDto } from './dto/session.dto';
 
@@ -12,7 +13,10 @@ import { StartSessionResponseDto } from './dto/session.dto';
 @Controller('session')
 @ApiTags('Session')
 export class SessionController {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('start')
   @HttpCode(200)
@@ -27,17 +31,24 @@ export class SessionController {
     type: StartSessionResponseDto,
   })
   startSession(): StartSessionResponseDto {
-    // Payload anónimo: solo incluimos un ID de sesión único
+    // Payload anónimo. No seteamos `iat` manualmente: jsonwebtoken lo
+    // autogenera en segundos (correcto según el spec de JWT) y lo combina
+    // con signOptions.expiresIn para calcular `exp`. La versión anterior
+    // pasaba `Date.now()` (milisegundos) como `iat`, lo que corrompía
+    // `exp` a una fecha ~58,000 años en el futuro — el token JAMÁS
+    // expiraba de verdad, sin importar JWT_EXPIRATION.
     const payload = {
       sub: 'anonymous-form',
-      iat: Date.now(),
     };
 
     const token = this.jwtService.sign(payload);
 
     return {
       token,
-      expiresIn: 1800, // 30 minutos
+      // Misma fuente que signOptions.expiresIn en AppModule (JwtModule) —
+      // antes estaba hardcodeado en 1800 y podía desincronizarse del JWT
+      // real si JWT_EXPIRATION cambiaba.
+      expiresIn: Number(this.configService.get('JWT_EXPIRATION', 1800)),
     };
   }
 }

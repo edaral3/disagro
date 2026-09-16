@@ -204,6 +204,26 @@ cambios de código para el build. URLs y comando de reproducción completos en `
 - **Hidratación de React**: cuidado al pasar un `<Chip>` (MUI, renderiza `<div>`) como
   `secondary` de `ListItemText` (por defecto renderiza `<p>`) — HTML inválido. Se resolvió
   con `slotProps={{ secondary: { component: 'span' } }}` en `ItemsPicker.tsx`.
+- **`JWT_EXPIRATION` nunca funcionó de verdad hasta 2026-09-16**, por dos bugs independientes
+  que se enmascaraban entre sí (ver `backend/src/app.module.ts` y `session.controller.ts`):
+  1. El payload del JWT seteaba `iat: Date.now()` (milisegundos) en vez de dejar que
+     `jsonwebtoken` lo autogenere en segundos — corrompía `exp` a una fecha ~58,000 años en
+     el futuro.
+  2. `ConfigService.get('JWT_EXPIRATION', ...)` devuelve **string** (viene de una env var).
+     `jsonwebtoken` interpreta un `expiresIn` string vía la librería `ms`, que trata un
+     numeral sin unidad (ej. `"180"`) como **milisegundos**, no segundos — colapsa a una
+     duración de ~0. Fix: envolver siempre en `Number(...)`.
+  Ambos bugs producían el mismo síntoma visible (`exp === iat` en el token decodificado), así
+  que si vuelves a tocar la duración de la sesión, decodifica el JWT real (no confíes solo en
+  el `expiresIn` de la respuesta) para confirmar que `exp - iat` es lo esperado. Hay 3 tests
+  e2e de regresión para esto en `registration-flow.e2e-spec.ts` (describe "Sesión: expiración
+  real del JWT").
+- **`railway up ./backend --path-as-root ...` borró `backend/test/` del disco local** durante
+  un deploy (causa exacta no confirmada — sospecha: interacción con `.dockerignore`, que
+  lista `test`, aunque otras rutas ahí listadas no se vieron afectadas). Se recuperó con
+  `git restore --source=HEAD -- backend/test/` y se reaplicaron los cambios pendientes.
+  **Regla desde ahora: comitear (`git commit`, no hace falta push) antes de cada `railway up`**,
+  para que cualquier recurrencia sea trivialmente recuperable con `git restore`.
 
 ## Auditoría 2026-09-15 (importante para futuras sesiones)
 
