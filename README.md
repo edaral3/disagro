@@ -91,13 +91,13 @@ Swagger disponible en: `http://localhost:3000/api/docs`
 ```bash
 # Backend
 cd backend
-npm test          # unitarios (DiscountCalculatorService) — 20 tests
-npm run test:e2e  # flujo completo vía SQLite en memoria — 19 tests
+npm test       
+npm run test:e2e 
 
 # Frontend
 cd frontend
-npm test          # paridad del preview de descuento con el backend — 11 tests
-npm run build     # incluye type-check completo
+npm test          
+npm run build    
 npm run lint
 ```
 
