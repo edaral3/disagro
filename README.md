@@ -1,6 +1,11 @@
 # Disagro — Plataforma de Confirmación de Asistencia
 
-Evento anual de promociones. Plataforma para que clientes confirmen asistencia y seleccionen Servicios y/o Productos de interés.
+Evento anual de promociones. Plataforma para que clientes confirmen asistencia y seleccionen
+Servicios y/o Productos de interés, con descuentos calculados automáticamente según reglas de
+negocio.
+
+**Stack**: NestJS + CQRS + TypeORM + PostgreSQL (backend) · Next.js (App Router) + React Query +
+Material-UI + React Hook Form/Zod (frontend) · Docker + Railway (deploy)
 
 ## 🚀 Demo en vivo
 
@@ -9,8 +14,41 @@ Evento anual de promociones. Plataforma para que clientes confirmen asistencia y
 - **Swagger**: https://api-production-138e.up.railway.app/api/docs
 
 Desplegado en [Railway](https://railway.com) (3 servicios: Postgres, `api`, `frontend`, cada uno
-desde su Dockerfile). Ver sección "Despliegue en Railway" más abajo para el detalle de cómo se
-configuró y cómo reproducirlo.
+desde su Dockerfile). Detalle en la sección [Despliegue en Railway](#despliegue-en-railway).
+
+## Arquitectura
+
+```
+Cliente (navegador)
+   │
+   │ 1. POST /api/session/start           → JWT anónimo, sin login
+   │ 2. GET  /api/items?search=&type=...  → buscar servicios/productos
+   │ 3. POST /api/registrations           → confirmar asistencia (Bearer JWT)
+   ▼
+Frontend (Next.js)  ──HTTP──►  Backend (NestJS, CQRS)  ──TypeORM──►  PostgreSQL
+```
+
+Backend organizado por módulo CQRS autónomo (`items`, `session`, `registrations`), cada uno con
+sus propios commands/queries/handlers/entities. Diagramas completos (arquitectura general, CQRS
+por módulo, modelo entidad-relación, secuencia de confirmación y topología de deploy) en
+[`documentation/diagramas-mermaid.md`](documentation/diagramas-mermaid.md) — Mermaid, se
+renderiza directo en GitHub.
+
+## Reglas de negocio
+
+**Descuentos** (independientes entre sí, no se suman):
+- Servicios: ≥2 → 3%; ≥2 **y** suma > Q.1,500 → 5% (reemplaza el 3%)
+- Productos: ≥3 → 3%; ≥5 → 5% (reemplaza el 3%)
+
+**Validaciones** al confirmar asistencia:
+- Email único (409 Conflict si duplica)
+- Fecha/hora del evento futura (400 Bad Request si pasada)
+- Mínimo 1 ítem seleccionado, todos deben existir y estar activos (404 Not Found si falta)
+
+Lógica de descuento aislada en `DiscountCalculatorService` (backend, sin dependencias de NestJS,
+fácil de testear) con un espejo en `frontend/src/lib/discount.ts` para previsualización en vivo —
+el valor que se persiste siempre lo calcula el backend al confirmar. Detalle completo de reglas y
+convenciones en [`.claude/skills/disagro-rules/SKILL.md`](.claude/skills/disagro-rules/SKILL.md).
 
 ## Estructura
 
@@ -18,127 +56,9 @@ configuró y cómo reproducirlo.
 disagro/
 ├── backend/          # NestJS API (CQRS + TypeORM) — completo
 ├── frontend/         # Next.js + React Query + Material-UI — completo
+├── documentation/    # Diagramas de arquitectura (Mermaid)
 └── docker-compose.yml
 ```
-
-## Backend — Estado actual
-
-**Paso 1 (✅ COMPLETADO): Bootstrap del proyecto**
-- Inicialización NestJS con CQRS, TypeORM, JWT, Swagger
-- Configuración de `.env`, ESLint, Prettier
-- Estructura de carpetas (commands/queries/events/entities por módulo)
-
-**Paso 2 (✅ COMPLETADO): Módulo `items`**
-- Entidad `Item` (id, name, description, price, type, category, active)
-- Query CQRS: `GetItemsQuery` con filtro por búsqueda y tipo (SERVICE/PRODUCT)
-- Controller: `GET /items?search=&type=`
-
-**Paso 3 (✅ COMPLETADO): Servicio de dominio `DiscountCalculatorService`**
-- Lógica pura de cálculo de descuentos (sin dependencias de NestJS/TypeORM)
-- Reglas exactas: servicios (≥2 → 3%, ≥2 y suma>1500 → 5%), productos (≥3 → 3%, ≥5 → 5%)
-- Tests exhaustivos cubriendo límites (2, 3, 4, 5 ítems; suma=1500 vs 1500.01; decimales)
-- Interfaz `SelectedItem`, `DiscountResult`
-
-**Paso 4 (✅ COMPLETADO): Módulo `registrations` con CQRS**
-- Entidades `Registration` y `RegistrationItem` (snapshot de precios)
-- Command: `CreateRegistrationCommand` con validaciones (email único, fecha futura, items existen)
-- Query: `GetRegistrationByIdQuery` para obtener detalles
-- Controller: `POST /registrations` (protegido por JWT sesión), `GET /registrations/:id`
-- Calcula automáticamente descuentos al confirmar
-- Emite evento de dominio `RegistrationConfirmedEvent`
-- DTOs con validación (class-validator)
-
-**Paso 5 (✅ COMPLETADO): Módulo `session` con JWT anónimo**
-- Controller: `POST /session/start` → emite JWT de corta duración (configurable vía JWT_EXPIRATION; actualmente 3 min) sin login
-- Guard: `SessionGuard` valida token en Authorization header
-- Protege `POST /registrations` contra spam/CSRF
-- Payload anónimo: solo `sub: 'anonymous-form'`
-
-**Paso 6 (✅ COMPLETADO): Cross-cutting concerns**
-- `HttpExceptionFilter` global: normaliza todas las respuestas de error (formato consistente)
-- `LoggingInterceptor` global: loguea requests/responses con duración
-- `ValidationPipe` global: whitelist, forbid unknown fields, auto-transform DTO
-
-**Paso 7 (✅ COMPLETADO): Tests e2e del flujo completo**
-- 19 tests e2e (SQLite en memoria, sin depender de Docker): sesión → items → registro → consulta
-- Cubre ambos escenarios de descuento, duplicados de email (incl. case-insensitive), fecha pasada,
-  ítem inactivo, ítem inexistente, ítems duplicados en la misma request, UUIDs inválidos, rango de
-  precio y orden por precio en `GET /items`
-
-**Paso 8 (✅ COMPLETADO): Dockerización**
-- `Dockerfile` multi-stage: build + runtime optimizado
-- `docker-compose.yml`: PostgreSQL 16 + NestJS API con health checks
-- `.dockerignore`: excluye node_modules, .git, dist (para build)
-- Variables de entorno: DB_HOST, JWT_SECRET, NODE_ENV, etc.
-- Volumen persistente para datos Postgres
-
-## Auditoría (2026-09-15)
-
-El bootstrap inicial (Pasos 1-8) se hizo con un modelo más ligero y **nunca se instalaron
-las dependencias ni se ejecutó el código** — el proyecto compilaba solo "en teoría". Se hizo
-una auditoría completa instalando, compilando y corriendo todo por primera vez, lo que reveló
-varios problemas reales que ya están corregidos:
-
-- **La app no arrancaba**: `SessionGuard` (usado vía `@UseGuards` en `RegistrationsController`)
-  nunca era resolvible porque `RegistrationsModule` no importaba `SessionModule` — NestJS
-  lanzaba `UnknownDependenciesException` al bootstrap. Confirmado con un repro aislado antes
-  y después del fix.
-- **`npm install` fallaba**: varias versiones de `@nestjs/*` en `package.json` eran incompatibles
-  entre sí (ej. `@nestjs/swagger@7.x` con Nest 11) o no existían (`@nestjs/jwt@12.1.0`).
-- **Dependencias ESM incompatibles**: las versiones más nuevas de `@nestjs/typeorm` (12.x) y
-  `@nestjs/jwt` (12.x) se distribuyen como ESM puro, incompatibles con el resto del proyecto
-  (CommonJS) — fallaban en tiempo de ejecución, no solo al compilar. Se fijaron a las últimas
-  versiones 11.x compatibles con Nest 11 en CommonJS.
-- **`tsconfig.json` sin `experimentalDecorators`/`emitDecoratorMetadata`**: sin esto, ningún
-  decorador de NestJS/TypeORM/class-validator compila.
-- **Condición de carrera en email duplicado**: el check "ya existe" y el `INSERT` no estaban en
-  una transacción ni había constraint único en DB — dos requests concurrentes con el mismo email
-  podían pasar ambos. Se agregó `unique: true` en la columna y se envolvió todo en una transacción
-  con manejo del error de constraint único como red de seguridad adicional.
-- **Ítems inactivos aceptados en confirmaciones**: `CreateRegistrationHandler` no filtraba
-  `active: true` al buscar los ítems seleccionados (inconsistente con `GetItemsHandler`).
-- **Sin runner para el seed**: existían los datos de ejemplo pero ningún script los insertaba
-  en la base de datos. Se agregó `npm run db:seed` (idempotente).
-- **Dependencias muertas**: `passport`/`passport-jwt`/`@nestjs/passport` estaban declaradas pero
-  nunca se usaban (el guard valida el JWT directamente); `ormconfig.ts` era código huérfano.
-- **Boilerplate sin usar**: `AppController`/`AppService`/`app.controller.spec.ts` (el "Hello World"
-  por defecto de Nest) nunca estaban registrados en `AppModule` — eliminados.
-- **DTO confuso**: `selectedItemIds` pedía objetos `{id}` en vez de strings — se simplificó a
-  `string[]` con validación de UUID y de duplicados (`@ArrayUnique`).
-- **Tipos Postgres-only** (`enum`, `timestamp`) reemplazados por alternativas portables
-  (`simple-enum`, tipo inferido) para no acoplar el esquema a un solo motor de base de datos.
-
-Todo lo anterior está verificado empíricamente: `npm install`, `npx tsc --noEmit`, `npm run build`,
-`npm test` (20/20) y `npm run test:e2e` (19/19) pasan limpio.
-
-## Frontend — Estado actual
-
-✅ **Completo**: Next.js (App Router) + React Query + Material-UI + React Hook Form/Zod.
-
-- Formulario de 2 columnas (info personal + buscador/checklist de servicios y productos),
-  acorde al mockup del enunciado.
-- Sesión anónima (`useSession`): pide un JWT al backend y lo persiste en `sessionStorage`;
-  reintenta automáticamente si expira en medio del llenado (401 → nueva sesión → reintento).
-- Búsqueda de ítems con debounce (300ms) vía React Query.
-- **Filtros avanzados** (`ItemsFilterMenu.tsx`, botón junto al buscador): tipo (todos/servicios/
-  productos), rango de precio mínimo/máximo, y orden por precio (menor→mayor / mayor→menor).
-  Se aplican en vivo, igual que la búsqueda de texto. Backend: `GET /items` acepta `minPrice`,
-  `maxPrice` y `sortBy` además de `search`/`type` (retrocompatible, todos opcionales).
-- **Descuento en vivo**: `src/lib/discount.ts` es un espejo puro de
-  `DiscountCalculatorService` del backend (mismos tests de paridad), usado solo para
-  previsualización mientras el cliente selecciona ítems — el descuento que se persiste
-  siempre lo calcula el backend al confirmar.
-- Confirmación inline en la misma página (sin ruta nueva), mostrando el descuento real
-  devuelto por el backend, no el preview del cliente.
-- CORS habilitado en el backend (`FRONTEND_URL` env var) para permitir las llamadas del navegador.
-
-**Verificado end-to-end con un navegador real** (Playwright headless, no solo build/tests):
-sesión anónima, búsqueda, ambos escenarios de descuento (servicios ≥2 con suma>1500 → 5%;
-productos ≥5 → 5%), confirmación exitosa con datos reales del backend, y el error 409 (email
-duplicado) mostrándose correctamente en la UI — primero corriendo backend+frontend en modo
-dev contra Postgres real, y de nuevo contra el stack 100% dockerizado (`docker-compose up`).
-En el camino se encontró y corrigió un error de hidratación de React (un `<Chip>` de MUI,
-que renderiza `<div>`, anidado dentro del `<p>` por defecto de `ListItemText`'s secondary).
 
 ## Instalación y desarrollo
 
@@ -166,7 +86,8 @@ npm run dev   # http://localhost:3001
 
 Swagger disponible en: `http://localhost:3000/api/docs`
 
-**Tests:**
+## Testing
+
 ```bash
 # Backend
 cd backend
@@ -183,11 +104,12 @@ npm run lint
 ## Despliegue en Railway
 
 Los 3 servicios (Postgres, `api`, `frontend`) corren en un solo proyecto de Railway, cada app
-service desde su Dockerfile existente (sin cambios de código para el build en sí).
+service desde su Dockerfile existente (sin cambios de código para el build en sí). No hay
+CI/CD todavía — el redeploy es manual vía `railway up`. **URLs actuales**: ver sección
+"Demo en vivo" más arriba.
 
-**URLs actuales**: ver sección "Demo en vivo" arriba.
-
-### Cómo se configuró (para reproducirlo o redesplegar)
+<details>
+<summary><strong>Cómo se configuró (para reproducirlo o redesplegar)</strong></summary>
 
 ```bash
 railway login                              # o railway up, que autentica sobre la marcha
@@ -233,7 +155,10 @@ DB_HOST=<proxy-domain> DB_PORT=<proxy-port> DB_USERNAME=postgres \
 railway tcp-proxy delete <proxy-domain>:<proxy-port> --service Postgres --yes
 ```
 
-### Decisiones y gotchas específicos de este despliegue
+</details>
+
+<details>
+<summary><strong>Decisiones y gotchas específicos de este despliegue</strong></summary>
 
 - **`DB_SYNCHRONIZE`**: el proyecto no tiene migraciones de TypeORM todavía (`synchronize`
   dependía de `NODE_ENV === 'development'`, así que en producción nunca se habrían creado las
@@ -254,15 +179,155 @@ railway tcp-proxy delete <proxy-domain>:<proxy-port> --service Postgres --yes
   inmediatamente después para no dejar la base expuesta públicamente.
 - **`ssl`**: se agregó soporte opcional (`DB_SSL=true`) en `app.module.ts` por si la imagen
   `postgres-ssl` de Railway lo exige — en la práctica no fue necesario sobre la red privada.
+- **El builder de un servicio puede revertir a Railpack** (autodetección) en vez de quedarse en
+  `DOCKERFILE` — si un deploy falla con un builder inesperado, reconfirmar con
+  `railway environment edit --service-config <servicio> build.builder DOCKERFILE` antes de
+  reintentar.
+
+</details>
 
 ## Decisiones de arquitectura
 
 - **CQRS**: Separación de Commands (escritura) y Queries (lectura) para escalabilidad.
-- **TypeORM**: ORM con PostgreSQL (dev) o Postgres (prod).
-- **JWT**: Sesión anónima de corta duración (no login de cliente).
+- **TypeORM**: ORM con PostgreSQL (dev: auto-sync, prod: migrations manual — pendiente real).
+- **JWT anónimo**: Sesión de corta duración sin login de cliente (protege contra spam/CSRF).
 - **Modular**: Cada módulo de dominio auto-contenido (commands/queries/events/entities).
 - **Next.js App Router + React Query + MUI**: sin librería de date-picker adicional
   (`datetime-local` nativo), sin workspaces compartidos entre frontend/backend (tipos
   calcados manualmente en `frontend/src/types/api.ts`).
 
-Ver `.claude/skills/disagro-rules/SKILL.md` para reglas de descuento y convenciones exactas.
+## Estado del proyecto
+
+✅ Backend completo, auditado y verificado · ✅ Frontend completo y verificado end-to-end con
+navegador real (Playwright) · ✅ Deploy en Railway live. Pendiente (no bloqueante): migraciones
+reales de TypeORM, CI/CD, backups automáticos de Postgres.
+
+<details>
+<summary><strong>Backend — historial de pasos completados (1-8)</strong></summary>
+
+**Paso 1: Bootstrap del proyecto**
+- Inicialización NestJS con CQRS, TypeORM, JWT, Swagger
+- Configuración de `.env`, ESLint, Prettier
+- Estructura de carpetas (commands/queries/events/entities por módulo)
+
+**Paso 2: Módulo `items`**
+- Entidad `Item` (id, name, description, price, type, category, active)
+- Query CQRS: `GetItemsQuery` con filtro por búsqueda y tipo (SERVICE/PRODUCT)
+- Controller: `GET /items?search=&type=`
+
+**Paso 3: Servicio de dominio `DiscountCalculatorService`**
+- Lógica pura de cálculo de descuentos (sin dependencias de NestJS/TypeORM)
+- Reglas exactas: servicios (≥2 → 3%, ≥2 y suma>1500 → 5%), productos (≥3 → 3%, ≥5 → 5%)
+- Tests exhaustivos cubriendo límites (2, 3, 4, 5 ítems; suma=1500 vs 1500.01; decimales)
+- Interfaz `SelectedItem`, `DiscountResult`
+
+**Paso 4: Módulo `registrations` con CQRS**
+- Entidades `Registration` y `RegistrationItem` (snapshot de precios)
+- Command: `CreateRegistrationCommand` con validaciones (email único, fecha futura, items existen)
+- Query: `GetRegistrationByIdQuery` para obtener detalles
+- Controller: `POST /registrations` (protegido por JWT sesión), `GET /registrations/:id`
+- Calcula automáticamente descuentos al confirmar
+- Emite evento de dominio `RegistrationConfirmedEvent`
+- DTOs con validación (class-validator)
+
+**Paso 5: Módulo `session` con JWT anónimo**
+- Controller: `POST /session/start` → emite JWT de corta duración (configurable vía
+  `JWT_EXPIRATION`; actualmente 3 min) sin login
+- Guard: `SessionGuard` valida token en Authorization header
+- Protege `POST /registrations` contra spam/CSRF
+- Payload anónimo: solo `sub: 'anonymous-form'`
+
+**Paso 6: Cross-cutting concerns**
+- `HttpExceptionFilter` global: normaliza todas las respuestas de error (formato consistente)
+- `LoggingInterceptor` global: loguea requests/responses con duración
+- `ValidationPipe` global: whitelist, forbid unknown fields, auto-transform DTO
+
+**Paso 7: Tests e2e del flujo completo**
+- 19 tests e2e (SQLite en memoria, sin depender de Docker): sesión → items → registro → consulta
+- Cubre ambos escenarios de descuento, duplicados de email (incl. case-insensitive), fecha pasada,
+  ítem inactivo, ítem inexistente, ítems duplicados en la misma request, UUIDs inválidos, rango de
+  precio y orden por precio en `GET /items`
+
+**Paso 8: Dockerización**
+- `Dockerfile` multi-stage: build + runtime optimizado
+- `docker-compose.yml`: PostgreSQL 16 + NestJS API con health checks
+- `.dockerignore`: excluye node_modules, .git, dist (para build)
+- Variables de entorno: DB_HOST, JWT_SECRET, NODE_ENV, etc.
+- Volumen persistente para datos Postgres
+
+</details>
+
+<details>
+<summary><strong>Auditoría 2026-09-15 — bugs reales encontrados al ejecutar el código por primera vez</strong></summary>
+
+El bootstrap inicial (Pasos 1-8) se hizo con un modelo más ligero y **nunca se instalaron
+las dependencias ni se ejecutó el código** — el proyecto compilaba solo "en teoría". Se hizo
+una auditoría completa instalando, compilando y corriendo todo por primera vez, lo que reveló
+varios problemas reales que ya están corregidos:
+
+- **La app no arrancaba**: `SessionGuard` (usado vía `@UseGuards` en `RegistrationsController`)
+  nunca era resolvible porque `RegistrationsModule` no importaba `SessionModule` — NestJS
+  lanzaba `UnknownDependenciesException` al bootstrap. Confirmado con un repro aislado antes
+  y después del fix.
+- **`npm install` fallaba**: varias versiones de `@nestjs/*` en `package.json` eran incompatibles
+  entre sí (ej. `@nestjs/swagger@7.x` con Nest 11) o no existían (`@nestjs/jwt@12.1.0`).
+- **Dependencias ESM incompatibles**: las versiones más nuevas de `@nestjs/typeorm` (12.x) y
+  `@nestjs/jwt` (12.x) se distribuyen como ESM puro, incompatibles con el resto del proyecto
+  (CommonJS) — fallaban en tiempo de ejecución, no solo al compilar. Se fijaron a las últimas
+  versiones 11.x compatibles con Nest 11 en CommonJS.
+- **`tsconfig.json` sin `experimentalDecorators`/`emitDecoratorMetadata`**: sin esto, ningún
+  decorador de NestJS/TypeORM/class-validator compila.
+- **Condición de carrera en email duplicado**: el check "ya existe" y el `INSERT` no estaban en
+  una transacción ni había constraint único en DB — dos requests concurrentes con el mismo email
+  podían pasar ambos. Se agregó `unique: true` en la columna y se envolvió todo en una transacción
+  con manejo del error de constraint único como red de seguridad adicional.
+- **Ítems inactivos aceptados en confirmaciones**: `CreateRegistrationHandler` no filtraba
+  `active: true` al buscar los ítems seleccionados (inconsistente con `GetItemsHandler`).
+- **Sin runner para el seed**: existían los datos de ejemplo pero ningún script los insertaba
+  en la base de datos. Se agregó `npm run db:seed` (idempotente).
+- **Dependencias muertas**: `passport`/`passport-jwt`/`@nestjs/passport` estaban declaradas pero
+  nunca se usaban (el guard valida el JWT directamente); `ormconfig.ts` era código huérfano.
+- **Boilerplate sin usar**: `AppController`/`AppService`/`app.controller.spec.ts` (el "Hello World"
+  por defecto de Nest) nunca estaban registrados en `AppModule` — eliminados.
+- **DTO confuso**: `selectedItemIds` pedía objetos `{id}` en vez de strings — se simplificó a
+  `string[]` con validación de UUID y de duplicados (`@ArrayUnique`).
+- **Tipos Postgres-only** (`enum`, `timestamp`) reemplazados por alternativas portables
+  (`simple-enum`, tipo inferido) para no acoplar el esquema a un solo motor de base de datos.
+
+Todo lo anterior está verificado empíricamente: `npm install`, `npx tsc --noEmit`, `npm run build`,
+`npm test` (20/20) y `npm run test:e2e` (19/19) pasan limpio.
+
+</details>
+
+<details>
+<summary><strong>Frontend — detalle de funcionalidad</strong></summary>
+
+Next.js (App Router) + React Query + Material-UI + React Hook Form/Zod.
+
+- Formulario de 2 columnas (info personal + buscador/checklist de servicios y productos),
+  acorde al mockup del enunciado, en la ruta `/confirmar-asistencia`.
+- Sesión anónima (`useSession`): pide un JWT al backend y lo persiste en `sessionStorage`;
+  reintenta automáticamente si expira en medio del llenado (401 → nueva sesión → reintento).
+- Búsqueda de ítems con debounce (300ms) vía React Query.
+- **Filtros avanzados** (`ItemsFilterMenu.tsx`, botón junto al buscador): tipo (todos/servicios/
+  productos), rango de precio mínimo/máximo, y orden por precio (menor→mayor / mayor→menor).
+  Se aplican en vivo, igual que la búsqueda de texto. Backend: `GET /items` acepta `minPrice`,
+  `maxPrice` y `sortBy` además de `search`/`type` (retrocompatible, todos opcionales).
+- **Descuento en vivo**: `src/lib/discount.ts` es un espejo puro de
+  `DiscountCalculatorService` del backend (mismos tests de paridad), usado solo para
+  previsualización mientras el cliente selecciona ítems — el descuento que se persiste
+  siempre lo calcula el backend al confirmar.
+- Confirmación inline en la misma página, mostrando el descuento real devuelto por el backend,
+  no el preview del cliente. Vista adicional en `/registrations` para listar confirmaciones
+  ya registradas.
+- CORS habilitado en el backend (`FRONTEND_URL` env var) para permitir las llamadas del navegador.
+
+**Verificado end-to-end con un navegador real** (Playwright headless, no solo build/tests):
+sesión anónima, búsqueda, ambos escenarios de descuento (servicios ≥2 con suma>1500 → 5%;
+productos ≥5 → 5%), confirmación exitosa con datos reales del backend, y el error 409 (email
+duplicado) mostrándose correctamente en la UI — primero corriendo backend+frontend en modo
+dev contra Postgres real, y de nuevo contra el stack 100% dockerizado (`docker-compose up`).
+En el camino se encontró y corrigió un error de hidratación de React (un `<Chip>` de MUI,
+que renderiza `<div>`, anidado dentro del `<p>` por defecto de `ListItemText`'s secondary).
+
+</details>

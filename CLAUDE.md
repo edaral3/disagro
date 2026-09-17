@@ -46,12 +46,13 @@ disagro/
 ├── docker-compose.yml                         # PostgreSQL + API + Frontend
 ├── README.md                                  # Estado del proyecto
 └── CLAUDE.md                                  # Este archivo
+```
 
 ## Decisiones de arquitectura (confirmadas)
 
 - **CQRS**: Separación Commands (escritura) y Queries (lectura) en cada módulo
 - **TypeORM**: ORM con PostgreSQL, entidades + migrations (sync en dev)
-- **JWT anónimo**: Sesión sin login de usuario (30 min de duración)
+- **JWT anónimo**: Sesión sin login de usuario (duración configurable vía `JWT_EXPIRATION`; 3 min actualmente)
 - **Modular**: Cada módulo = commands/queries/events/entities/dto autónomo
 - **Monorepo simple**: backend/ y frontend/ con package.json separados (sin workspaces)
 
@@ -80,9 +81,13 @@ Ver `.claude/skills/disagro-rules/SKILL.md` para detalles completos.
 **Session**
 - `POST /api/session/start` → `{ token, expiresIn }` (anónimo, sin auth)
 
-**Registrations** (protegido por `Authorization: Bearer <token>`)
-- `POST /api/registrations` → crea confirmación, calcula descuentos (201)
-- `GET /api/registrations/:id` → obtiene detalles con descuentos (200)
+**Registrations**
+- `POST /api/registrations` → crea confirmación, calcula descuentos (201). Protegido por
+  `Authorization: Bearer <token>` (`SessionGuard`).
+- `GET /api/registrations?search=&sortBy=createdAt_asc|createdAt_desc` → lista confirmaciones
+  (búsqueda por nombre/email, orden por fecha). **Sin `SessionGuard`** — a diferencia de los
+  otros dos endpoints del módulo, hoy es público. UI: `frontend/src/app/registrations/page.tsx`.
+- `GET /api/registrations/:id` → obtiene detalles con descuentos (200). Sin guard.
 
 **Swagger**: `http://localhost:3000/api/docs`
 
@@ -247,20 +252,8 @@ primero, no asumas que compila por inspección visual.
 ## Ambiente
 
 - Node.js 20+
-- npm (o pnpm/yarn)
+- npm
 - PostgreSQL 14+ (o 16 en Docker)
-- Docker (recomendado para dev)
-
-## Contacto / Autor
-
-Prueba técnica de Disagro — Arnold Developer (arnolso201@gmail.com)
-
----
-
-**Último update**: 2026-09-16
-**Backend Status**: ✅ Completo y verificado (Pasos 1-8, auditado y corregido)
-**Frontend Status**: ✅ Completo y verificado end-to-end (dev, dockerizado y en producción)
-**Deploy Status**: ✅ Live en Railway — ver README.md sección "Demo en vivo" para las URLs
-**Pendiente**: migraciones reales, CI/CD, backups automáticos (no bloqueantes)
+- Docker
 
 Para más detalles de reglas, ver `.claude/skills/disagro-rules/SKILL.md`.
