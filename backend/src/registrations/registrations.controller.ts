@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Body,
+  Query,
   UseGuards,
   HttpCode,
 } from '@nestjs/common';
@@ -17,7 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { CreateRegistrationCommand } from './commands/impl/create-registration.command';
 import { GetRegistrationByIdQuery } from './queries/impl/get-registration-by-id.query';
+import { ListRegistrationsQuery } from './queries/impl/list-registrations.query';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
+import { ListRegistrationsDto } from './dto/list-registrations.dto';
 import { RegistrationResponseDto } from './dto/registration-response.dto';
 import { SessionGuard } from '../session/guards/session.guard';
 import { Registration } from './entities/registration.entity';
@@ -66,6 +69,27 @@ export class RegistrationsController {
     );
 
     return this.mapToResponse(registration);
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Listar confirmaciones de clientes',
+    description:
+      'Retorna todas las confirmaciones registradas, con búsqueda opcional por nombre/email y orden por fecha de confirmación.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de confirmaciones',
+    type: [RegistrationResponseDto],
+  })
+  async list(
+    @Query() filters: ListRegistrationsDto,
+  ): Promise<RegistrationResponseDto[]> {
+    const registrations = await this.queryBus.execute(
+      new ListRegistrationsQuery(filters.search, filters.sortBy),
+    );
+
+    return registrations.map((registration) => this.mapToResponse(registration));
   }
 
   @Get(':id')

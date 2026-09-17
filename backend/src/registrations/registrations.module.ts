@@ -6,11 +6,12 @@ import { RegistrationItem } from './entities/registration-item.entity';
 import { RegistrationsController } from './registrations.controller';
 import { CreateRegistrationHandler } from './commands/handlers/create-registration.handler';
 import { GetRegistrationByIdHandler } from './queries/handlers/get-registration-by-id.handler';
+import { ListRegistrationsHandler } from './queries/handlers/list-registrations.handler';
 import { DiscountCalculatorService } from '../common/services/discount-calculator.service';
 import { SessionModule } from '../session/session.module';
 
 const CommandHandlers = [CreateRegistrationHandler];
-const QueryHandlers = [GetRegistrationByIdHandler];
+const QueryHandlers = [GetRegistrationByIdHandler, ListRegistrationsHandler];
 
 @Module({
   imports: [

@@ -1,0 +1,69 @@
+<mxfile host="app.diagrams.net" agent="Claude Code" version="24.0.0">
+  <diagram id="deploy-railway" name="Deployment — Railway">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Disagro — Deployment en Railway (✅ live)" style="text;html=1;fontSize=20;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="10" width="560" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local" value="Local (dev machine)&#10;git commit + railway up" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proj" value="Railway — Proyecto &quot;disagro&quot; (workspace edaral3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="60" width="540" height="420" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api" value="Servicio: api&#10;Dockerfile multi-stage (npm ci --omit=dev --omit=optional)&#10;build.builder = DOCKERFILE&#10;Dominio público propio (puerto 3000)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="390" y="100" width="240" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend" value="Servicio: frontend&#10;Dockerfile multi-stage (Next.js standalone)&#10;build.builder = DOCKERFILE&#10;NEXT_PUBLIC_API_URL embebido en build time&#10;Dominio público propio (puerto 3000)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="660" y="100" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="Servicio: Postgres (managed)&#10;Red privada de Railway (no público)&#10;DB_SYNCHRONIZE=true (sin migraciones aún)&#10;Vars: PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE&#10;referenciadas como \${{Postgres.PGXXX}} desde api" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=8;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="390" y="240" width="240" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vars" value="Variables cruzadas:&#10;api → FRONTEND_URL (CORS)&#10;frontend → NEXT_PUBLIC_API_URL=&lt;api-domain&gt;/api&#10;api → JWT_SECRET (random 32 bytes) · JWT_EXPIRATION=180 (seg)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="660" y="240" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="seed" value="Seed one-off: TCP proxy temporal a Postgres → npm run db:seed (local) → proxy eliminado" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="390" y="370" width="490" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="browser" value="Navegador del cliente" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" value="railway up ./backend --path-as-root --service api&#10;railway up ./frontend --path-as-root --service frontend" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" edge="1" parent="1" source="local" target="proj">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="browser" target="frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="fetch /api (NEXT_PUBLIC_API_URL)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="browser" target="api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="TypeORM (red privada)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="api" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pending" value="Pendiente (no bloqueante): migraciones TypeORM reales, CI/CD automático, backups automáticos de Postgres" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="500" width="540" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
