@@ -6,11 +6,6 @@ import { useDebouncedValue } from './useDebouncedValue';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-/**
- * Lista de confirmaciones filtrada por texto (nombre/email) y ordenada por
- * fecha de confirmación. El texto se debouncea para no disparar una request
- * por cada tecla, igual que en useItems.
- */
 export function useRegistrations(search: string, sortBy?: RegistrationsSortOption) {
   const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
 

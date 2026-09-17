@@ -4,12 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StartSessionResponseDto } from './dto/session.dto';
 
-/**
- * Controlador de sesiones anónimas.
- * El frontend llama a POST /session/start antes de rellenar el formulario de confirmación.
- * Recibe un JWT de corta duración que debe incluir en el Authorization header
- * cuando POST /registrations.
- */
 @Controller('session')
 @ApiTags('Session')
 export class SessionController {
@@ -31,12 +25,8 @@ export class SessionController {
     type: StartSessionResponseDto,
   })
   startSession(): StartSessionResponseDto {
-    // Payload anónimo. No seteamos `iat` manualmente: jsonwebtoken lo
-    // autogenera en segundos (correcto según el spec de JWT) y lo combina
-    // con signOptions.expiresIn para calcular `exp`. La versión anterior
-    // pasaba `Date.now()` (milisegundos) como `iat`, lo que corrompía
-    // `exp` a una fecha ~58,000 años en el futuro — el token JAMÁS
-    // expiraba de verdad, sin importar JWT_EXPIRATION.
+    // No seteamos `iat` manualmente: jsonwebtoken lo autogenera en segundos
+    // y lo combina con signOptions.expiresIn para calcular `exp`.
     const payload = {
       sub: 'anonymous-form',
     };
@@ -45,9 +35,7 @@ export class SessionController {
 
     return {
       token,
-      // Misma fuente que signOptions.expiresIn en AppModule (JwtModule) —
-      // antes estaba hardcodeado en 1800 y podía desincronizarse del JWT
-      // real si JWT_EXPIRATION cambiaba.
+      // Debe coincidir con signOptions.expiresIn en AppModule (JwtModule).
       expiresIn: Number(this.configService.get('JWT_EXPIRATION', 1800)),
     };
   }

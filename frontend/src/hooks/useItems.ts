@@ -14,12 +14,7 @@ export interface ItemsFilters {
   sortBy?: ItemsSortOption;
 }
 
-/**
- * Lista de servicios y productos filtrada por texto y por los filtros del
- * panel (tipo, rango de precio, orden). El texto y el rango de precio se
- * debouncean (para no disparar una request por cada tecla); tipo y orden
- * se aplican de inmediato ya que no vienen de un input de texto.
- */
+// Solo texto y rango de precio se debouncean; tipo/orden no vienen de un input de texto.
 export function useItems(search: string, filters: ItemsFilters = {}) {
   const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
   const debouncedMinPrice = useDebouncedValue(filters.minPrice, SEARCH_DEBOUNCE_MS);

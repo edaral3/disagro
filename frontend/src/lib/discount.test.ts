@@ -1,11 +1,6 @@
 import { calculateDiscountPreview, SelectedItemForDiscount } from './discount';
 
-/**
- * Mismos casos que backend/src/common/services/discount-calculator.service.spec.ts
- * — este archivo existe para garantizar paridad entre el preview del
- * frontend y la fuente de verdad del backend, no para revalidar las reglas
- * de negocio en sí (eso ya lo cubre la suite del backend).
- */
+// Paridad con discount-calculator.service.spec.ts (backend), no revalida las reglas en sí.
 describe('calculateDiscountPreview', () => {
   describe('Servicios', () => {
     it('0 servicios -> 0%', () => {

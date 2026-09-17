@@ -10,11 +10,6 @@ interface UseCreateRegistrationOptions {
   onSuccess?: (data: RegistrationResponse) => void;
 }
 
-/**
- * Envía la confirmación de asistencia. Si el token de sesión expiró justo
- * en medio del llenado del formulario (401), pide uno nuevo una sola vez
- * y reintenta automáticamente antes de reportar el error al usuario.
- */
 export function useCreateRegistration(options: UseCreateRegistrationOptions = {}) {
   const { token, refresh } = useSession();
 

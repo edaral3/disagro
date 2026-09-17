@@ -113,9 +113,7 @@ export function ItemsPicker({ selectedItems, onToggle }: ItemsPickerProps) {
                           sx={{ mt: 0.5, height: 18, fontSize: '0.65rem' }}
                         />
                       }
-                      // El secondary por defecto renderiza un <p>, y un <Chip> renderiza
-                      // un <div> — <div> dentro de <p> es HTML inválido y rompe la
-                      // hidratación de React. Lo forzamos a <span>.
+                      // secondary por defecto renderiza <p>, y <Chip> renderiza <div> — inválido anidado.
                       slotProps={{ secondary: { component: 'span' } }}
                     />
                     <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>

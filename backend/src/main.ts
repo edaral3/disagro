@@ -10,24 +10,20 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // CORS: el frontend (Next.js) corre en un origen distinto al backend.
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: false,
   });
 
-  // Global pipes
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
   }));
 
-  // Global filters and interceptors
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
 
-  // Swagger setup
   const config = new DocumentBuilder()
     .setTitle('Disagro Event Registration API')
     .setDescription('Plataforma de confirmación de asistencia y selección de servicios/productos')

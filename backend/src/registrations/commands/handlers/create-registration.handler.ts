@@ -28,7 +28,6 @@ export class CreateRegistrationHandler
   async execute(command: CreateRegistrationCommand): Promise<Registration> {
     const email = command.email.trim().toLowerCase();
 
-    // Validar que eventDateTime es una fecha futura
     const eventDate = new Date(command.eventDateTime);
     if (eventDate <= new Date()) {
       throw new BadRequestException(
@@ -38,9 +37,7 @@ export class CreateRegistrationHandler
 
     try {
       return await this.dataSource.transaction(async (manager) => {
-        // Validar que no existe otra confirmación del mismo email
-        // (defensa adicional; el constraint único de DB es la garantía real
-        // contra condiciones de carrera bajo requests concurrentes)
+        // Defensa adicional: la garantía real contra concurrencia es el constraint único en DB.
         const existingRegistration = await manager.findOne(Registration, {
           where: { email },
         });
@@ -51,7 +48,6 @@ export class CreateRegistrationHandler
           );
         }
 
-        // Recuperar los ítems activos del DB (deduplicados por el DTO con @ArrayUnique)
         const items = await manager.find(Item, {
           where: command.selectedItemIds.map((id) => ({ id, active: true })),
         });
@@ -62,7 +58,6 @@ export class CreateRegistrationHandler
           );
         }
 
-        // Calcular descuentos usando el servicio de dominio puro
         const selectedItems = items.map((item) => ({
           id: item.id,
           type:
@@ -73,7 +68,6 @@ export class CreateRegistrationHandler
         const discounts =
           this.discountCalculator.calculateDiscounts(selectedItems);
 
-        // Crear la Registration
         const registration = manager.create(Registration, {
           firstName: command.firstName,
           lastName: command.lastName,
@@ -85,7 +79,6 @@ export class CreateRegistrationHandler
 
         const savedRegistration = await manager.save(Registration, registration);
 
-        // Crear los RegistrationItems con snapshot de precios
         const registrationItems = items.map((item) =>
           manager.create(RegistrationItem, {
             registrationId: savedRegistration.id,
@@ -102,7 +95,6 @@ export class CreateRegistrationHandler
 
         return savedRegistration;
       }).then((savedRegistration) => {
-        // Emitir evento de dominio (fuera de la transacción, ya confirmada)
         this.eventBus.publish(
           new RegistrationConfirmedEvent(
             savedRegistration.id,
@@ -115,9 +107,7 @@ export class CreateRegistrationHandler
         return savedRegistration;
       });
     } catch (error) {
-      // Red de seguridad: si dos requests concurrentes con el mismo email
-      // pasan ambas el check anterior antes de que la primera haga commit,
-      // el constraint único de la DB rechaza el segundo INSERT.
+      // Red de seguridad si dos requests concurrentes pasan ambas el check de arriba.
       if (
         error instanceof QueryFailedError &&
         (error as any).code === POSTGRES_UNIQUE_VIOLATION

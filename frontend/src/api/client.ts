@@ -2,12 +2,7 @@ import type { ApiErrorResponse } from '@/types/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
-/**
- * Error tipado que envuelve la respuesta de error uniforme del backend
- * (ver HttpExceptionFilter). `status` permite a los componentes reaccionar
- * distinto según el código (401 -> reintentar sesión, 409 -> email
- * duplicado, etc.) sin tener que parsear el mensaje.
- */
+// `status` permite reaccionar distinto según el código (401, 409, etc.) sin parsear el mensaje.
 export class ApiError extends Error {
   constructor(
     public readonly status: number,

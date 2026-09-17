@@ -6,11 +6,6 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-/**
- * Guard que valida un JWT anónimo de sesión.
- * Este JWT se emite sin login de usuario (solo para el flujo del formulario).
- * Usado para proteger POST /registrations contra spam/CSRF.
- */
 @Injectable()
 export class SessionGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
@@ -27,7 +22,7 @@ export class SessionGuard implements CanActivate {
 
     try {
       const payload = this.jwtService.verify(token);
-      request.user = payload; // Attach payload to request for future use
+      request.user = payload;
       return true;
     } catch (error) {
       throw new UnauthorizedException('Token de sesión inválido o expirado');

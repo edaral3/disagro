@@ -2,10 +2,6 @@
 
 import { createTheme } from '@mui/material/styles';
 
-/**
- * Paleta acorde al mockup: header/footer oscuros, acento azul en el botón
- * principal y en los checks de selección.
- */
 export const theme = createTheme({
   palette: {
     primary: {

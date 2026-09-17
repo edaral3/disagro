@@ -36,13 +36,6 @@ function writeStoredSession(session: StoredSession) {
   }
 }
 
-/**
- * Sesión anónima de formulario (ver disagro-rules SKILL.md y
- * backend/src/session). Se pide un JWT al backend la primera vez que se
- * necesita, y se reutiliza (persistido en sessionStorage) mientras no haya
- * expirado. `refresh()` fuerza pedir uno nuevo (usado cuando el backend
- * responde 401 porque expiró en medio de la sesión del usuario).
- */
 export function useSession() {
   const queryClient = useQueryClient();
 

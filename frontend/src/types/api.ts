@@ -1,9 +1,4 @@
-/**
- * Tipos calcados 1:1 de los DTOs reales del backend (ver
- * backend/src/items, backend/src/registrations, backend/src/session).
- * Mantener sincronizado manualmente: no hay workspace compartido entre
- * frontend/backend (decisión de arquitectura ya tomada).
- */
+// Calcados de los DTOs del backend; sin workspace compartido, sincronizar a mano.
 
 export type ItemType = 'SERVICE' | 'PRODUCT';
 
@@ -48,10 +43,7 @@ export interface RegistrationResponse {
   createdAt: string;
 }
 
-/**
- * Forma de error uniforme que produce HttpExceptionFilter en el backend
- * (backend/src/common/filters/http-exception.filter.ts).
- */
+// Forma de error uniforme que produce HttpExceptionFilter en el backend.
 export interface ApiErrorResponse {
   statusCode: number;
   message: string | string[];

@@ -11,16 +11,8 @@ export interface DiscountPreview {
   productsDiscountPct: number;
 }
 
-/**
- * Espejo puro de backend/src/common/services/discount-calculator.service.ts.
- * Se usa SOLO para la previsualización en vivo mientras el cliente
- * selecciona ítems; el cálculo autoritativo (el que se persiste) siempre
- * lo hace el backend al confirmar. Ver .claude/skills/disagro-rules/SKILL.md
- * para las reglas exactas — mantener ambas implementaciones en sync.
- *
- * Servicios: ≥2 → 3%; ≥2 y suma > Q.1500 → 5% (reemplaza el 3%).
- * Productos: ≥3 → 3%; ≥5 → 5% (reemplaza el 3%).
- */
+// Espejo de discount-calculator.service.ts (backend) solo para previsualización;
+// el backend sigue siendo la fuente de verdad al confirmar — mantener ambos en sync.
 export function calculateDiscountPreview(
   items: SelectedItemForDiscount[],
 ): DiscountPreview {

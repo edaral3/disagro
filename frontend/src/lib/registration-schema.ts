@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-/**
- * Validación de cliente para feedback inmediato por campo. La validación
- * autoritativa sigue siendo la del backend (ver CreateRegistrationDto en
- * backend/src/registrations/dto/create-registration.dto.ts); los mensajes
- * de error 400/409 del servidor se muestran tal cual llegan.
- */
+// Feedback inmediato por campo; la validación autoritativa sigue siendo la del backend.
 export const personalInfoSchema = z.object({
   firstName: z.string().trim().min(1, 'El nombre es requerido'),
   lastName: z.string().trim().min(1, 'El apellido es requerido'),

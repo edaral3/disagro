@@ -36,12 +36,7 @@ const TYPE_OPTIONS: { value: ItemType | 'ALL'; label: string }[] = [
   { value: 'PRODUCT', label: 'Productos' },
 ];
 
-/**
- * Botón + panel de filtros avanzados para el buscador de ítems: tipo
- * (servicios/productos/ambos), rango de precio, y orden por precio.
- * Los cambios se aplican de inmediato (mismo criterio que la búsqueda de
- * texto, que ya filtra en vivo) — no hay botón "Aplicar".
- */
+// Los filtros se aplican de inmediato, igual que la búsqueda de texto — no hay botón "Aplicar".
 export function ItemsFilterMenu({ value, onChange }: ItemsFilterMenuProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);

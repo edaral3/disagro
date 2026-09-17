@@ -16,10 +16,6 @@ export interface ErrorResponse {
   path: string;
 }
 
-/**
- * Filtro global de excepciones HTTP.
- * Normaliza todas las respuestas de error a un formato consistente.
- */
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('HttpExceptionFilter');

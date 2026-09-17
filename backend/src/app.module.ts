@@ -24,10 +24,6 @@ import { SessionModule } from './session/session.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        // No hay migraciones todavía (ver CLAUDE.md): DB_SYNCHRONIZE permite
-        // habilitar sync explícitamente fuera de dev (ej. primer deploy a la
-        // nube) sin acoplarlo a NODE_ENV. Default 'false' preserva el
-        // comportamiento actual de dev/Docker.
         synchronize:
           configService.get('DB_SYNCHRONIZE', 'false') === 'true' ||
           configService.get('NODE_ENV') === 'development',

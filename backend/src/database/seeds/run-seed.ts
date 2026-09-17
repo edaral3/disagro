@@ -8,14 +8,7 @@ import { Registration } from '../../registrations/entities/registration.entity';
 import { RegistrationItem } from '../../registrations/entities/registration-item.entity';
 import { itemsSeed } from './items.seed';
 
-/**
- * Script de seed idempotente por ítem: inserta solo los ítems de
- * `itemsSeed` que no existan ya (comparando por `name`), sin duplicar ni
- * tocar los que ya están. Esto permite agregar ítems nuevos a
- * `items.seed.ts` y volver a correr `npm run db:seed` en una base ya
- * sembrada sin necesidad de vaciarla primero.
- * Uso: npm run db:seed (ver package.json)
- */
+// Idempotente por ítem: solo inserta lo que falte, comparando por `name`.
 async function runSeed() {
   const dataSource = new DataSource({
     type: 'postgres',

@@ -30,10 +30,10 @@ npm test         # tests unitarios (Jest)
 
 ## Estructura
 
-- `src/app/` — App Router (`layout.tsx`, `page.tsx`)
+- `src/app/` — App Router: `/confirmar-asistencia` (formulario), `/registrations` (listado)
 - `src/api/` — cliente HTTP tipado por recurso (session, items, registrations)
-- `src/hooks/` — `useSession`, `useItems`, `useCreateRegistration` (React Query)
+- `src/hooks/` — `useSession`, `useItems`, `useCreateRegistration`, `useRegistrations` (React Query)
 - `src/lib/discount.ts` — espejo puro de las reglas de descuento del backend, para
   previsualización en vivo (el backend sigue siendo la fuente de verdad al confirmar)
-- `src/components/` — `RegistrationForm` y sus sub-componentes
+- `src/components/` — `RegistrationForm` (+ sub-componentes) y `RegistrationsView`
 - `src/types/api.ts` — tipos calcados de los DTOs reales del backend

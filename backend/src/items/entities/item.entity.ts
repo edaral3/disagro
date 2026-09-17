@@ -22,9 +22,7 @@ export class Item {
   @Column('decimal', { precision: 10, scale: 2, transformer: DecimalTransformer })
   price: number;
 
-  // simple-enum (en vez de enum) es portable entre Postgres/SQLite/MySQL:
-  // se almacena como varchar con un CHECK constraint en lugar de un tipo
-  // nativo de Postgres, lo que también simplifica futuras migraciones.
+  // simple-enum (varchar + CHECK) en vez de enum nativo: portable entre Postgres/SQLite/MySQL.
   @Column('simple-enum', { enum: ItemType })
   type: ItemType;
 
